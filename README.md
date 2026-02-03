@@ -24,6 +24,9 @@ This repository contains two independent Nargo packages:
 	- `dlog`: verifies a Chaum–Pedersen discrete-log equality proof using Poseidon2 as the challenge hash
 	- `oprf_output`: end-to-end gadget that checks the proof + unblinding and computes the final output
 
+- `oprf_example/` (binary)
+	- a simple example binary demonstrating the `oprf` gadgets end-to-end 
+
 ## High-level protocol shape
 
 At a high level, the `oprf` library helps prove (in-circuit) that:
