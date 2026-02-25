@@ -1,5 +1,5 @@
 use super::{blinded_query::blinded_query_inner, dlog::verify_dlog_equality};
-use babyjubjub::BabyJubJubPoint;
+use babyjubjub::{BabyJubJubPoint, BabyJubJubPointInSubgroup};
 
 /// Generates a proof of the full construction, including the initial query proof generation, the Chaum-Pedersen dlog equality proof verification, the unblinding verification, and the final output. For further details we refer to https://github.com/TaceoLabs/oprf-service/blob/main/docs/oprf.pdf
 /// Inputs:
@@ -13,7 +13,7 @@ use babyjubjub::BabyJubJubPoint;
 /// `ds_out`: Domain separator for final output.
 pub fn verified_oprf(
     beta: Field,
-    oprf_pk: BabyJubJubPoint,
+    oprf_pk: BabyJubJubPointInSubgroup,
     dlog_e: Field,
     dlog_s: Field,
     oprf_response_blinded: BabyJubJubPoint,
@@ -24,17 +24,29 @@ pub fn verified_oprf(
 ) -> Field {
     // Validate beta once and reuse the bits
     assert(beta != 0, "Beta cannot be zero");
-    let beta_bits = BabyJubJubPoint::validate_scalar_field_with_bits(beta);
+    let beta_bits = babyjubjub::validate_scalar_field_with_bits(beta);
 
     // Show that the original query was computed correctly
     let b_q = blinded_query_inner(beta_bits, client_input);
 
-    // Check the dlog equality proof
-    verify_dlog_equality(dlog_e, dlog_s, oprf_pk, b_q, oprf_response_blinded, ds_dlog);
-
     // Verify that the user unblinded correctly
     // This checks that: oprf_response * beta === oprf_response_blinded
     verify_unblinding(oprf_response, oprf_response_blinded, beta_bits);
+
+    // The verify_unblinding check ensures that the unblinded response is on the curve and in the prime order subgroup.
+    // This means that the blinded response is also on the curve and in the prime order subgroup, since it's just a scalar multiple of the unblinded response.
+    let oprf_response_blinded_in_subgroup =
+        BabyJubJubPointInSubgroup::from_point_unchecked(oprf_response_blinded);
+
+    // Check the dlog equality proof
+    verify_dlog_equality(
+        dlog_e,
+        dlog_s,
+        oprf_pk,
+        b_q,
+        oprf_response_blinded_in_subgroup,
+        ds_dlog,
+    );
 
     // Compute the final output using the unblinded oprf_response
     generate_output(client_input, oprf_response, ds_out)
@@ -43,7 +55,7 @@ pub fn verified_oprf(
 // Generates the final output as output = Poseidon2(DS_out,query, oprf_response.x, oprf_response.y), where DS_out is a domain separator.
 pub fn generate_output(query: Field, oprf_response: BabyJubJubPoint, ds_out: Field) -> Field {
     let state =
-        std::hash::poseidon2_permutation([ds_out, query, oprf_response.x, oprf_response.y], 4);
+        std::hash::poseidon2_permutation([ds_out, query, oprf_response.x(), oprf_response.y()], 4);
 
     state[1]
 }
@@ -62,16 +74,13 @@ pub fn verify_unblinding(
     let reblinded = oprf_response.scalar_mul_bits(beta_bits);
     // Since response point is in the prime order subgroup, reblinded is also in the prime order subgroup.
 
-    assert(
-        (reblinded.x == oprf_response_blinded.x) & (reblinded.y == oprf_response_blinded.y),
-        "Unblinding verification failed",
-    );
+    assert(reblinded.equals(oprf_response_blinded), "Unblinding verification failed");
 }
 
 #[test]
 fn verified_oprf_kat_test() {
     let beta = 2387462819376525223098422965806766751285565755980265072594901385662518965922;
-    let oprf_pk = BabyJubJubPoint::new(
+    let oprf_pk = BabyJubJubPointInSubgroup::new(
         16048296497646113681290127133582586009660277510307938775951186660467382774945,
         13451097916688865791218925679662796109386737920791997438101375513111619197164,
     );

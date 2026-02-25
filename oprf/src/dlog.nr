@@ -1,4 +1,4 @@
-use babyjubjub::BabyJubJubPoint;
+use babyjubjub::BabyJubJubPointInSubgroup;
 use poseidon2::bn254::perm;
 
 // Verify a Chaum-Pedersen dlog equality proof that shows that A=x*G and C=x*B share the same discrete log x, given A,B,C and proof e,s.
@@ -7,25 +7,20 @@ use poseidon2::bn254::perm;
 pub fn verify_dlog_equality(
     e: Field,
     s: Field,
-    a_point: BabyJubJubPoint,
-    b_point: BabyJubJubPoint,
-    c_point: BabyJubJubPoint,
+    a_point: BabyJubJubPointInSubgroup,
+    b_point: BabyJubJubPointInSubgroup,
+    c_point: BabyJubJubPointInSubgroup,
     ds_dlog: Field,
 ) {
-    BabyJubJubPoint::validate_babyjubjub_field(s);
+    babyjubjub::validate_babyjubjub_field(s);
 
-    assert(a_point.is_on_curve(), "Point a must be on curve");
-    assert(b_point.is_on_curve(), "Point b must be on curve");
-    assert(c_point.is_on_curve(), "Point c must be on curve");
     assert(a_point.is_not_identity(), "Point a must not be identity");
     assert(b_point.is_not_identity(), "Point b must not be identity");
     assert(c_point.is_not_identity(), "Point c must not be identity");
-    assert(b_point.check_sub_group(), "Point b must be in subgroup");
-    assert(c_point.check_sub_group(), "Point c must be in subgroup");
 
     // Compute r1 = G*s - a*e and r2 = b*s - c*e
-    let generator = BabyJubJubPoint::generator();
-    let gs = BabyJubJubPoint::generator_scalar_mul(s);
+    let generator = BabyJubJubPointInSubgroup::generator();
+    let gs = BabyJubJubPointInSubgroup::generator_scalar_mul(s);
     let ae = a_point.scalar_mul_base_field(e);
     let r1 = gs.subtract(ae);
 
@@ -40,18 +35,18 @@ pub fn verify_dlog_equality(
     // Hash input: [ds_dlog, a.x, a.y, b.x, b.y, c.x, c.y, G.x, G.y, r1.x, r1.y, r2.x, r2.y, 0, 0, 0]
     let hash_input = [
         ds_dlog,
-        a_point.x,
-        a_point.y,
-        b_point.x,
-        b_point.y,
-        c_point.x,
-        c_point.y,
-        generator.x,
-        generator.y,
-        r1.x,
-        r1.y,
-        r2.x,
-        r2.y,
+        a_point.x(),
+        a_point.y(),
+        b_point.x(),
+        b_point.y(),
+        c_point.x(),
+        c_point.y(),
+        generator.x(),
+        generator.y(),
+        r1.x(),
+        r1.y(),
+        r2.x(),
+        r2.y(),
         0,
         0,
         0,
@@ -66,15 +61,15 @@ pub fn verify_dlog_equality(
 #[test]
 fn test_verify_dlog_equality() {
     let ds_dlog: Field = 1523098184080632582082867317389990410064981862; // b"DLOG Equality Proof"
-    let oprf_query_key: BabyJubJubPoint = BabyJubJubPoint {
-        x: 0x2003f27260a0b5ee81b84f66f8bf2761ea9557262a4bcd16db5ca7abdeee1885,
-        y: 0x1eb45d38c97f7e65ac1b76d234db3237d2860f2b25c43e020693ef92b5a5f793,
-    };
-    let oprf_response_blinded = BabyJubJubPoint::new(
+    let oprf_query_key = BabyJubJubPointInSubgroup::new(
+        0x2003f27260a0b5ee81b84f66f8bf2761ea9557262a4bcd16db5ca7abdeee1885,
+        0x1eb45d38c97f7e65ac1b76d234db3237d2860f2b25c43e020693ef92b5a5f793,
+    );
+    let oprf_response_blinded = BabyJubJubPointInSubgroup::new(
         6882462243439192795495492197995100450516328082301652413647059141168822449465,
         11410248488379662098266045802345135482683496756414401793793460258484335221028,
     );
-    let oprf_pk = BabyJubJubPoint::new(
+    let oprf_pk = BabyJubJubPointInSubgroup::new(
         16048296497646113681290127133582586009660277510307938775951186660467382774945,
         13451097916688865791218925679662796109386737920791997438101375513111619197164,
     );
