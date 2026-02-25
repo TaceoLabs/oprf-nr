@@ -2,7 +2,7 @@
 // Implements the Elligator2 method from RFC 9380
 // https://www.rfc-editor.org/rfc/rfc9380.html
 
-use super::BabyJubJubPoint;
+use super::{BabyJubJubPoint, BabyJubJubPointInSubgroup};
 use poseidon2::bn254::perm;
 
 comptime global Z: Field = 5;
@@ -223,43 +223,38 @@ fn rational_map_mont_to_twisted_edwards(s: Field, t: Field) -> (Field, Field) {
 }
 
 // Map to Twisted Edwards curve
-fn map_to_curve_twisted_edwards(input: Field) -> (Field, Field) {
+fn map_to_curve_twisted_edwards(input: Field) -> BabyJubJubPoint {
     let (mont_s, mont_t) = map_to_curve_elligator2(input);
-    rational_map_mont_to_twisted_edwards(mont_s, mont_t)
-}
-
-fn clear_cofactor_baby_jubjub(x: Field, y: Field) -> (Field, Field) {
-    let point = BabyJubJubPoint::new(x, y);
-    let result = point.multiply_by_cofactor();
-
-    (result.x, result.y)
+    let (x, y) = rational_map_mont_to_twisted_edwards(mont_s, mont_t);
+    // The encode to curve procedure here ensures that the output is a valid point on the twisted Edwards curve, so we can use new_unchecked here
+    BabyJubJubPoint::new_unchecked(x, y)
 }
 
 // Main encode to curve function
-pub fn encode(input: Field) -> (Field, Field) {
+pub fn encode(input: Field) -> BabyJubJubPointInSubgroup {
     // u = HashToField(input)
     let u = hash_to_field(input);
 
     // q = MapToCurveTwistedEdwards(u)
-    let (q_x, q_y) = map_to_curve_twisted_edwards(u);
+    let q = map_to_curve_twisted_edwards(u);
 
     // Clear cofactor (multiply by 8)
-    let (out_x, out_y) = clear_cofactor_baby_jubjub(q_x, q_y);
+    let out = q.multiply_by_cofactor();
 
-    (out_x, out_y)
+    out
 }
 
 #[test]
 fn test_encode_to_curve_kat0() {
     let input = 0x03e4070110668921a99c37627dedddb5ab65fae33c19e24d9ee19d7065fdeca8;
-    let (x, y) = encode(input);
+    let out = encode(input);
 
     assert(
-        x == 10317659717708787122683977912952208883341451354299498236440964928299898571531,
+        out.x() == 10317659717708787122683977912952208883341451354299498236440964928299898571531,
         "encode x mismatch for test vector",
     );
     assert(
-        y == 2771878628977713302835201233169750856073682825638128695522023521672351725258,
+        out.y() == 2771878628977713302835201233169750856073682825638128695522023521672351725258,
         "encode y mismatch for test vector",
     );
 }
@@ -267,13 +262,13 @@ fn test_encode_to_curve_kat0() {
 #[test]
 fn test_encode_to_curve_kat1() {
     let input = 0x42;
-    let (x, y) = encode(input);
+    let out = encode(input);
     assert(
-        x == 16453178030699411958341692808730701741568100876455568813278163225032347056514,
+        out.x() == 16453178030699411958341692808730701741568100876455568813278163225032347056514,
         "encode x mismatch for test vector",
     );
     assert(
-        y == 5447922750205248208490261749483809853022174346498064122782172531486866662376,
+        out.y() == 5447922750205248208490261749483809853022174346498064122782172531486866662376,
         "encode y mismatch for test vector",
     );
 }
@@ -281,13 +276,13 @@ fn test_encode_to_curve_kat1() {
 #[test]
 fn test_encode_to_curve_kat2() {
     let input = 0;
-    let (x, y) = encode(input);
+    let out = encode(input);
     assert(
-        x == 16605852874433019712683889710166313607515083375138125349412270828059484170936,
+        out.x() == 16605852874433019712683889710166313607515083375138125349412270828059484170936,
         "encode x mismatch for test vector",
     );
     assert(
-        y == 12075050546928691602283582412953179086742727007172364313655633055645374686589,
+        out.y() == 12075050546928691602283582412953179086742727007172364313655633055645374686589,
         "encode y mismatch for test vector",
     );
 }

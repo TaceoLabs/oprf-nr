@@ -1,4 +1,4 @@
-use babyjubjub::BabyJubJubPoint;
+use babyjubjub::{BabyJubJubPoint, BabyJubJubPointInSubgroup};
 use oprf::{blinded_query::blinded_query, oprf_output::verified_oprf};
 
 pub global DS_N: Field = 1330664006; // b"OPRF"
@@ -21,12 +21,13 @@ pub fn main(
     preimage: Field,
     beta: Field,
     // These are the inputs needed for the second part of the OPRF protocol, proving the full flow.
-    oprf_pk: pub BabyJubJubPoint,
+    // The OPRF public key is a public input, and it must be verified outside the circuit that it is a valid point in the prime order subgroup of the BabyJubJub curve.
+    oprf_pk: pub BabyJubJubPointInSubgroup,
     dlog_e: Field,
     dlog_s: Field,
     oprf_response_blinded: BabyJubJubPoint,
     oprf_response: BabyJubJubPoint,
-) -> pub (BabyJubJubPoint, Field) {
+) -> pub (BabyJubJubPointInSubgroup, Field) {
     // Prove that the client knows the preimage of the given hash.
     let hash = std::hash::poseidon2_permutation([0, preimage, 0, 0], 4)[1];
     assert(hash == commitment, "Hashed message does not match expected value");
@@ -53,7 +54,7 @@ pub fn main(
 
 #[test]
 fn hash_preimage_kat_test() {
-    let oprf_pk = BabyJubJubPoint::new(
+    let oprf_pk = BabyJubJubPointInSubgroup::new(
         5710999305174746446129006558187982651929018212457711080538180123406991257834,
         14822830093014637273720066510303560520096190665043878041612158237057634974510,
     );
@@ -76,7 +77,7 @@ fn hash_preimage_kat_test() {
 
     let expected_output =
         652462475809871187303694058326169186632613845657706445893000132676028204998;
-    let expected_query_request = BabyJubJubPoint::new(
+    let expected_query_request = BabyJubJubPointInSubgroup::new(
         8862413567228016424141044651498536845623186939028122849972174286034625708354,
         6472083251782659560632838765641307423815272887581156706952768391781883690924,
     );
@@ -92,7 +93,7 @@ fn hash_preimage_kat_test() {
         oprf_response,
     );
     assert(
-        (result.0.x == expected_query_request.x) & (result.0.y == expected_query_request.y),
+        result.0.equals(expected_query_request),
         "Query request point does not match expected value",
     );
     assert(result.1 == expected_output, "Final output does not match expected value");

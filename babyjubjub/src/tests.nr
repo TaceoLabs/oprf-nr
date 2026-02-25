@@ -64,7 +64,7 @@ fn test_valid_point() {
 // (1,0) is an invalid point
 #[test]
 fn test_invalid_point() {
-    let point = BabyJubJubPoint::new(1, 0);
+    let point = BabyJubJubPoint::new_unchecked(1, 0);
     assert(!point.is_on_curve(), "Point is on curve");
 }
 

@@ -40,15 +40,29 @@ global BABYJUBJUB_CHARACTERISTIC: [u1; 251] = [
     0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1,
 ];
 
-/// Represents a point on the BabyJubJub curve
+/// Represents a point on the BabyJubJub curve.
+///
+/// It is always checked that the point lies on the curve when created using the `new` method.
+/// For performance reasons, the `new_unchecked` method allows creating a point without this check, but it is the caller's responsibility to ensure that the coordinates satisfy the curve equation.
+/// All internal methods assume that the point is on the curve, so using `new_unchecked` with invalid coordinates can lead to incorrect behavior or failed assertions in methods that rely on the curve properties.
+/// Also be careful when using this struct as inputs to `main`, as it is directly constructed from user input and thus must be explicitly validated before use.
 pub struct BabyJubJubPoint {
-    pub x: Field,
-    pub y: Field,
+    x: Field,
+    y: Field,
 }
 
 impl BabyJubJubPoint {
-    /// Creates a new BabyJubJub point
+    /// Creates a new BabyJubJub point, checking that it lies on the curve.
     pub fn new(x: Field, y: Field) -> Self {
+        let point = BabyJubJubPoint { x, y };
+        assert(point.is_on_curve(), "Point is not on the BabyJubJub curve");
+        point
+    }
+
+    /// Creates a new BabyJubJub point from coordinates without checking if it's on the curve.
+    ///
+    /// Precondition: The caller must ensure that the provided coordinates satisfy the curve equation.
+    pub fn new_unchecked(x: Field, y: Field) -> Self {
         BabyJubJubPoint { x, y }
     }
 
@@ -62,8 +76,20 @@ impl BabyJubJubPoint {
         BabyJubJubPoint { x: BABYJUBJUB_GENERATOR_X, y: BABYJUBJUB_GENERATOR_Y }
     }
 
+    /// Returns the x-coordinate of the point
+    pub fn x(self) -> Field {
+        self.x
+    }
+
+    /// Returns the y-coordinate of the point
+    pub fn y(self) -> Field {
+        self.y
+    }
+
     /// Checks if the point is on the BabyJubJub curve
+    ///
     /// Curve equation: a*x^2 + y^2 = 1 + d*x^2*y^2
+    /// This is done automatically in the `new` constructor, but this method can be used to validate points that were created with `new_unchecked` or passed as inputs.
     pub fn is_on_curve(self) -> bool {
         let lhs = BABYJUBJUB_A * self.x * self.x + self.y * self.y;
         let rhs = 1 + BABYJUBJUB_D * self.x * self.x * self.y * self.y;
@@ -83,8 +109,14 @@ impl BabyJubJubPoint {
     }
 
     /// Multiplies the point by the cofactor (8 for BabyJubJub over BN254)
-    pub fn multiply_by_cofactor(self) -> Self {
-        self.double().double().double()
+    /// This ensures the resulting point is in the prime-order subgroup.
+    pub fn multiply_by_cofactor(self) -> BabyJubJubPointInSubgroup {
+        BabyJubJubPointInSubgroup { point: self.double().double().double() }
+    }
+
+    /// Checks two points for equality
+    pub fn equals(self, other: BabyJubJubPoint) -> bool {
+        (self.x == other.x) & (self.y == other.y)
     }
 
     unconstrained fn add_unconstrained(self, other: BabyJubJubPoint) -> (Field, Field) {
@@ -189,17 +221,6 @@ impl BabyJubJubPoint {
         }
     }
 
-    /// Validates that a field element is in the BabyJubJub scalar field Fr
-    pub fn validate_babyjubjub_field(field_element: Field) {
-        bn254::assert_lt(field_element, BABYJUBJUB_Fr);
-    }
-
-    pub fn validate_scalar_field_with_bits(field_element: Field) -> [u1; 251] {
-        BabyJubJubPoint::validate_babyjubjub_field(field_element);
-        let bits: [u1; 251] = field_element.to_le_bits();
-        bits
-    }
-
     // Precondition: This method expects that the point is on-curve.
     pub fn check_sub_group(self) -> bool {
         static_assert(
@@ -218,9 +239,132 @@ impl BabyJubJubPoint {
         p.is_identity()
     }
 
+    /// A more efficient method for multiplying the generator by a scalar, using a fixed window method with precomputation.
     pub fn generator_scalar_mul(scalar: Field) -> Self {
         generator_mul_fix(scalar)
     }
+}
+
+/// Represents a point on the BabyJubJub curve that is guaranteed to be in the prime-order subgroup.
+/// This wrapper ensures that any point of this type has been validated to lie in the correct subgroup, which is essential for cryptographic operations that rely on subgroup properties.
+pub struct BabyJubJubPointInSubgroup {
+    point: BabyJubJubPoint,
+}
+
+impl BabyJubJubPointInSubgroup {
+    /// Creates a new BabyJubJub point from coordinates, checking that it is on the curve and in the subgroup.
+    pub fn new(x: Field, y: Field) -> Self {
+        let point = BabyJubJubPoint::new(x, y);
+        assert(point.check_sub_group(), "Point is not in the correct subgroup");
+        BabyJubJubPointInSubgroup { point }
+    }
+    /// Validates and wraps a BabyJubJubPoint, checking that it is in the subgroup.
+    pub fn from_point(point: BabyJubJubPoint) -> Self {
+        assert(point.check_sub_group(), "Point is not in the correct subgroup");
+        BabyJubJubPointInSubgroup { point }
+    }
+
+    /// Validates and wraps a BabyJubJubPoint without checking it is in the subgroup.
+    ///
+    /// Precondition: The caller must ensure that the provided coordinates satisfy the curve equation and subgroup membership.
+    pub fn from_point_unchecked(point: BabyJubJubPoint) -> Self {
+        BabyJubJubPointInSubgroup { point }
+    }
+
+    /// Creates a new BabyJubJub point from coordinates without checking if it's on the curve or in the subgroup.
+    ///
+    /// Precondition: The caller must ensure that the provided coordinates satisfy the curve equation and subgroup membership.
+    pub fn new_unchecked(x: Field, y: Field) -> Self {
+        let point = BabyJubJubPoint::new_unchecked(x, y);
+        BabyJubJubPointInSubgroup { point }
+    }
+
+    /// Creates the identity point
+    pub fn identity() -> Self {
+        // The identity point is in the subgroup since it's the neutral element for addition.
+        Self { point: BabyJubJubPoint::identity() }
+    }
+
+    /// Creates the generator point
+    pub fn generator() -> Self {
+        Self { point: BabyJubJubPoint { x: BABYJUBJUB_GENERATOR_X, y: BABYJUBJUB_GENERATOR_Y } }
+    }
+
+    /// Returns the x-coordinate of the point
+    pub fn x(self) -> Field {
+        self.point.x
+    }
+
+    /// Returns the y-coordinate of the point
+    pub fn y(self) -> Field {
+        self.point.y
+    }
+
+    /// Checks if the point is the identity element
+    pub fn is_identity(self) -> bool {
+        self.point.is_identity()
+    }
+
+    /// Checks if the point is not the identity element
+    pub fn is_not_identity(self) -> bool {
+        !self.is_identity()
+    }
+
+    pub fn generator_scalar_mul(scalar: Field) -> Self {
+        // Since we multiply the generator by a scalar, the result will always be in the subgroup.
+        Self { point: generator_mul_fix(scalar) }
+    }
+
+    /// Checks two points for equality
+    pub fn equals(self, other: BabyJubJubPointInSubgroup) -> bool {
+        self.point.equals(other.point)
+    }
+
+    pub fn negate(self) -> Self {
+        // Negation of a point in the subgroup will also yield a point in the subgroup.
+        Self { point: self.point.negate() }
+    }
+
+    pub fn add(self, other: BabyJubJubPointInSubgroup) -> Self {
+        // The sum of two points in the subgroup is also in the subgroup.
+        Self { point: self.point.add(other.point) }
+    }
+
+    pub fn double(self) -> Self {
+        // Doubling a point in the subgroup will also yield a point in the subgroup.
+        Self { point: self.point.double() }
+    }
+
+    pub fn subtract(self, other: BabyJubJubPointInSubgroup) -> Self {
+        // The difference of two points in the subgroup is also in the subgroup.
+        Self { point: self.point.subtract(other.point) }
+    }
+
+    pub fn scalar_mul(self, scalar: Field) -> Self {
+        // Scalar multiplication of a point in the subgroup will also yield a point in the subgroup.
+        Self { point: self.point.scalar_mul(scalar) }
+    }
+
+    pub fn scalar_mul_bits(self, bits: [u1; 251]) -> Self {
+        // Scalar multiplication of a point in the subgroup will also yield a point in the subgroup.
+        Self { point: self.point.scalar_mul_bits(bits) }
+    }
+
+    pub fn scalar_mul_base_field(self, scalar_fq: Field) -> Self {
+        // Scalar multiplication of a point in the subgroup will also yield a point in the subgroup.
+        Self { point: self.point.scalar_mul_base_field(scalar_fq) }
+    }
+}
+
+/// Validates that a field element is in the BabyJubJub scalar field Fr
+pub fn validate_babyjubjub_field(field_element: Field) {
+    bn254::assert_lt(field_element, BABYJUBJUB_Fr);
+}
+
+pub fn validate_scalar_field_with_bits(field_element: Field) -> [u1; 251] {
+    validate_babyjubjub_field(field_element);
+    let bits: [u1; 251] = field_element.to_le_bits();
+    bits
 }
 
 #[test]
