@@ -1,5 +1,4 @@
 use babyjubjub::BabyJubJubPoint;
-use poseidon2::bn254::perm;
 
 // Verify a Chaum-Pedersen dlog equality proof that shows that A=x*G and C=x*B share the same discrete log x, given A,B,C and proof e,s.
 // Point A is a public input in our use case (the OPRF public key and therefore we expect it to be checked to be in the prime order subgroup outside of this circuit)
@@ -52,15 +51,42 @@ pub fn verify_dlog_equality(
         r1.y,
         r2.x,
         r2.y,
-        0,
-        0,
-        0,
     ];
-    let hash_state = perm::x5_16(hash_input);
-    let challenge = hash_state[1];
+    let challenge = sponge(hash_input);
 
     // Verify that the recomputed challenge matches e
     assert(challenge == e, "Challenge verification failed");
+}
+
+fn sponge(input: [Field; 13]) -> Field {
+    let iv: Field = 13 * 18446744073709551616;
+
+    let mut state = [0, 0, 0, iv];
+
+    state[0] = state[0] + input[0];
+    state[1] = state[1] + input[1];
+    state[2] = state[2] + input[2];
+    state = std::hash::poseidon2_permutation(state, 4);
+
+    state[0] = state[0] + input[3];
+    state[1] = state[1] + input[4];
+    state[2] = state[2] + input[5];
+    state = std::hash::poseidon2_permutation(state, 4);
+
+    state[0] = state[0] + input[6];
+    state[1] = state[1] + input[7];
+    state[2] = state[2] + input[8];
+    state = std::hash::poseidon2_permutation(state, 4);
+
+    state[0] = state[0] + input[9];
+    state[1] = state[1] + input[10];
+    state[2] = state[2] + input[11];
+    state = std::hash::poseidon2_permutation(state, 4);
+
+    state[0] = state[0] + input[12];
+    state = std::hash::poseidon2_permutation(state, 4);
+
+    state[0]
 }
 
 #[test]
@@ -90,5 +116,15 @@ fn test_verify_dlog_equality() {
         oprf_query_key,
         oprf_response_blinded,
         ds_dlog,
+    );
+}
+
+#[test]
+fn test_sponge() {
+    let input: [Field; 13] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+    let output = sponge(input);
+    assert(
+        output == 0x135eb5e4eb1ff3e4edbf6a390881dd693797b4f1d476704af062eb5537da98d0,
+        "Sponge test failed",
     );
 }

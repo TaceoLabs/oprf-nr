@@ -3,7 +3,6 @@
 // https://www.rfc-editor.org/rfc/rfc9380.html
 
 use super::BabyJubJubPoint;
-use poseidon2::bn254::perm;
 
 comptime global Z: Field = 5;
 global C1: u32 = 28;
@@ -12,8 +11,9 @@ global C5: Field = 1910321906792171394429139282769207003614565195732928631530564
 
 fn hash_to_field(input: Field) -> Field {
     // element 0 is the DS string "OPRF_HashToField_BabyJubJub"
-    let hash_input = [32627786498498119128812045057993354633158048678109587794777765218, input, 0];
-    let hash_result = perm::x5_3(hash_input);
+    let hash_input =
+        [32627786498498119128812045057993354633158048678109587794777765218, input, 0, 0];
+    let hash_result = std::hash::poseidon2_permutation(hash_input, 4);
 
     hash_result[1]
 }
