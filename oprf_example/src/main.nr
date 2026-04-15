@@ -28,7 +28,7 @@ pub fn main(
     oprf_response: BabyJubJubPoint,
 ) -> pub (BabyJubJubPoint, Field) {
     // Prove that the client knows the preimage of the given hash.
-    let hash = std::hash::poseidon2_permutation([0, preimage, 0, 0], 4)[1];
+    let hash = std::hash::poseidon2_permutation::<4>([0, preimage, 0, 0])[1];
     assert(hash == commitment, "Hashed message does not match expected value");
 
     // 1. Generate the query proof point.

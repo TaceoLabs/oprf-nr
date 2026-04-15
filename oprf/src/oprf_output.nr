@@ -43,7 +43,7 @@ pub fn verified_oprf(
 // Generates the final output as output = Poseidon2(DS_out,query, oprf_response.x, oprf_response.y), where DS_out is a domain separator.
 pub fn generate_output(query: Field, oprf_response: BabyJubJubPoint, ds_out: Field) -> Field {
     let state =
-        std::hash::poseidon2_permutation([ds_out, query, oprf_response.x, oprf_response.y], 4);
+        std::hash::poseidon2_permutation::<4>([ds_out, query, oprf_response.x, oprf_response.y]);
 
     state[1]
 }
@@ -51,7 +51,7 @@ pub fn generate_output(query: Field, oprf_response: BabyJubJubPoint, ds_out: Fie
 pub fn verify_unblinding(
     oprf_response: BabyJubJubPoint,
     oprf_response_blinded: BabyJubJubPoint,
-    beta_bits: [u1; 251],
+    beta_bits: [bool; 251],
 ) {
     // Check that oprf_response is on the curve and perform unblinding
     assert(oprf_response.is_on_curve(), "OPRF response must be on curve");
