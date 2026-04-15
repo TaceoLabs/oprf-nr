@@ -179,7 +179,7 @@ impl BabyJubJubPoint {
         for i in 0..N {
             result = result.double();
 
-            if bits[N - 1 - i]  {
+            if bits[N - 1 - i] {
                 result = result.add(self);
             }
         }
@@ -213,7 +213,7 @@ impl BabyJubJubPoint {
     // Precondition: This method expects that the point is on-curve.
     pub fn check_sub_group(self) -> bool {
         static_assert(
-            BABYJUBJUB_CHARACTERISTIC[250] ,
+            BABYJUBJUB_CHARACTERISTIC[250],
             "Characteristic has high bit set",
         );
 
