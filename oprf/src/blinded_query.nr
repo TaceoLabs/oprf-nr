@@ -11,7 +11,7 @@ pub fn blinded_query(beta: Field, client_input: Field) -> BabyJubJubPoint {
     blinded_query_inner(beta_bits, client_input)
 }
 
-pub fn blinded_query_inner(beta_bits: [bool; 251], client_input: Field) -> BabyJubJubPoint {
+pub fn blinded_query_inner(beta_bits: [u1; 251], client_input: Field) -> BabyJubJubPoint {
     // Encode query to curve point and perform scalar multiplication
     let (px, py) = encode(client_input);
     // Precondition: encode returns a valid point on the BabyJubJub curve in the prime order subgroup

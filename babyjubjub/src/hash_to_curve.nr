@@ -50,7 +50,7 @@ fn inverse_or_zero(x: Field) -> Field {
 
 fn pow(x: Field, y: Field) -> Field {
     let mut r = 1 as Field;
-    let b: [bool; 254] = y.to_le_bits();
+    let b: [u1; 254] = y.to_le_bits();
 
     for i in 0..254 {
         r *= r;
@@ -131,7 +131,7 @@ fn is_quadratic_residue_or_zero(x: Field) -> bool {
     l != -1
 }
 
-fn sgn0(x: Field) -> bool {
+fn sgn0(x: Field) -> u1 {
     x.sgn0()
 }
 
@@ -182,7 +182,7 @@ pub fn map_to_curve_elligator2(input: Field) -> (Field, Field) {
         y_sgn // Want sgn0(y) == 0, so negate if currently 1
     };
 
-    if should_negate {
+    if should_negate == 1 {
         y = -y;
     }
 
