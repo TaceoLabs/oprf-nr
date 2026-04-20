@@ -56,6 +56,8 @@ global BABYJUBJUB_CHARACTERISTIC: [bool; 251] = [
 /// For performance reasons, the `new_unchecked` method allows creating a point without this check, but it is the caller's responsibility to ensure that the coordinates satisfy the curve equation.
 /// All internal methods assume that the point is on the curve, so using `new_unchecked` with invalid coordinates can lead to incorrect behavior or failed assertions in methods that rely on the curve properties.
 /// Also be careful when using this struct as inputs to `main`, as it is directly constructed from user input and thus must be explicitly validated before use.
+///
+/// While it ensures that points are on the BabyJubJub curve, it does not automatically ensure that points are in the prime-order subgroup. For operations that require subgroup membership, use the `BabyJubJubPointInSubgroup` wrapper which signals and enforces this constraint.
 pub struct BabyJubJubPoint {
     x: Field,
     y: Field,

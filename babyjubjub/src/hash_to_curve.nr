@@ -226,7 +226,7 @@ fn rational_map_mont_to_twisted_edwards(s: Field, t: Field) -> (Field, Field) {
 fn map_to_curve_twisted_edwards(input: Field) -> BabyJubJubPoint {
     let (mont_s, mont_t) = map_to_curve_elligator2(input);
     let (x, y) = rational_map_mont_to_twisted_edwards(mont_s, mont_t);
-    // The encode to curve procedure here ensures that the output is a valid point on the twisted Edwards curve, so we can use new_unchecked here
+    // The encode to curve procedure here ensures that the output is a valid point on the twisted Edwards curve, so we can use new_unchecked here. It is not necessarily in the prime-order subgroup, but it will be multiplied by the cofactor in the main encode function to ensure that the final output is in the prime-order subgroup.
     BabyJubJubPoint::new_unchecked(x, y)
 }
 
