@@ -11,7 +11,7 @@ pub fn blinded_query(beta: Field, client_input: Field) -> BabyJubJubPointInSubgr
     blinded_query_inner(beta_bits, client_input)
 }
 
-pub fn blinded_query_inner(
+pub(crate) fn blinded_query_inner(
     beta_bits: [bool; 251],
     client_input: Field,
 ) -> BabyJubJubPointInSubgroup {
