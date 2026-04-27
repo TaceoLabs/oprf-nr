@@ -368,8 +368,9 @@ impl BabyJubJubPointInSubgroup {
     }
 }
 
-
-pub struct BabyJubJubScalarFieldElement{ inner: Field }
+pub struct BabyJubJubScalarFieldElement {
+    inner: Field,
+}
 
 impl BabyJubJubScalarFieldElement {
     /// Creates a new BabyJubJub scalar field element, checking that it is within the valid range of the scalar field.
@@ -391,7 +392,6 @@ impl BabyJubJubScalarFieldElement {
 fn validate_babyjubjub_scalar_field(field_element: Field) {
     bn254::assert_lt(field_element, BABYJUBJUB_Fr);
 }
-
 
 #[test]
 fn test_babyjubjub_in_correct_subgroup() {
