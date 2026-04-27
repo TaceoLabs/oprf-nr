@@ -6,7 +6,6 @@ use babyjubjub::{BabyJubJubPoint, BabyJubJubPointInSubgroup, BabyJubJubScalarFie
 /// `beta`: blinding randomness provided by the client.
 /// `oprf_pk`: OPRF public key.
 /// `dlog_e`, `dlog_s`: Chaum-Pedersen DLog equality proof inputs.
-/// `oprf_response_blinded`: Blinded OPRF response from the nodes.
 /// `oprf_response`: Unblinded OPRF response (provided by the client to avoid in-circuit inversion).
 /// `client_input`: Original client input.
 /// `ds_dlog`: Domain separator for the DLog equality proof.
@@ -30,8 +29,7 @@ pub fn verified_oprf(
 
     // Verify that the user unblinded correctly
     // This checks that: oprf_response * beta === oprf_response_blinded
-    let oprf_response_blinded_in_subgroup =
-        verify_unblinding_of_response(oprf_response, beta_bits);
+    let oprf_response_blinded_in_subgroup = verify_unblinding_of_response(oprf_response, beta_bits);
 
     // Check the dlog equality proof
     verify_dlog_equality(
@@ -59,7 +57,7 @@ pub fn generate_output(query: Field, oprf_response: BabyJubJubPoint, ds_out: Fie
     state[1]
 }
 
-/// Recomputes oprf_response_blinded from oprf_response and beta, and verifies that the response is in the prime order subgroup. 
+/// Recomputes oprf_response_blinded from oprf_response and beta, and verifies that the response is in the prime order subgroup.
 /// This ensures that the response is valid and prevents malleability attacks. Returns the unblinded response as a point in the prime order subgroup if verification succeeds.
 pub fn verify_unblinding_of_response(
     oprf_response: BabyJubJubPoint,
@@ -68,7 +66,7 @@ pub fn verify_unblinding_of_response(
     // We need to check that the response is in the prime order subgroup, otherwise the response may include a small-order component which may get canceled out during unblinding and allow malleability here
     assert(oprf_response.check_sub_group(), "OPRF response must be in prime order subgroup");
 
-    // Verify: oprf_response * beta === oprf_response_blinded
+    // Compute: oprf_response * beta === oprf_response_blinded
     let reblinded = oprf_response.scalar_mul_bits(beta_bits);
     // Since response point is in the prime order subgroup, reblinded is also in the prime order subgroup.
 
@@ -86,10 +84,6 @@ fn verified_oprf_kat_test() {
     );
     let dlog_e = 5609293693019386176508931649877337091590878173635241438306548223920379307458;
     let dlog_s = 1167493435914595771361530871033173621661932035514996719837354510862251986174;
-    let oprf_response_blinded = BabyJubJubPoint::new(
-        6882462243439192795495492197995100450516328082301652413647059141168822449465,
-        11410248488379662098266045802345135482683496756414401793793460258484335221028,
-    );
     let oprf_response = BabyJubJubPoint::new(
         11771927497930831763844779626723106344742708040976110136703486119568919340013,
         19299702061490581533153169629464406607119112637706400365988657399831357218309,
