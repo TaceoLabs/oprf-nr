@@ -25,8 +25,10 @@ pub fn main(
     oprf_pk: pub BabyJubJubPointInSubgroup,
     dlog_e: Field,
     dlog_s: Field,
-    oprf_response_blinded: BabyJubJubPoint,
-    oprf_response: BabyJubJubPoint,
+    oprf_response_blinded_x: Field,
+    oprf_response_blinded_y: Field,
+    oprf_response_x: Field,
+    oprf_response_y: Field,
 ) -> pub (BabyJubJubPointInSubgroup, Field) {
     // Prove that the client knows the preimage of the given hash.
     let hash = std::hash::poseidon2_permutation::<4>([0, preimage, 0, 0])[1];
@@ -34,6 +36,11 @@ pub fn main(
 
     // 1. Generate the query proof point.
     let query = blinded_query(beta, preimage);
+
+    // construct the input points, checking they are on curve
+    let oprf_response_blinded =
+        BabyJubJubPoint::new(oprf_response_blinded_x, oprf_response_blinded_y);
+    let oprf_response = BabyJubJubPoint::new(oprf_response_x, oprf_response_y);
 
     // 2. Generate the final proof on the client side on the output of the OPRF nodes.
     // Note that in a typical scenario, the query proof in 1. would be generated on the client side before sending the resulting request to the OPRF nodes and only after receiving the OPRF response from the nodes, the proof in 2. would be generated. Inside the second proof, the query proof is done again for completeness and verification purposes. We include both parts in this main function for demonstration purposes only.
@@ -89,8 +96,10 @@ fn hash_preimage_kat_test() {
         oprf_pk,
         dlog_e,
         dlog_s,
-        oprf_response_blinded,
-        oprf_response,
+        oprf_response_blinded.x(),
+        oprf_response_blinded.y(),
+        oprf_response.x(),
+        oprf_response.y(),
     );
     assert(
         result.0.equals(expected_query_request),
