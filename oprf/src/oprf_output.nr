@@ -16,7 +16,6 @@ pub fn verified_oprf(
     oprf_pk: BabyJubJubPointInSubgroup,
     dlog_e: Field,
     dlog_s: Field,
-    oprf_response_blinded: BabyJubJubPoint,
     oprf_response: BabyJubJubPoint,
     client_input: Field,
     ds_dlog: Field,
@@ -32,7 +31,7 @@ pub fn verified_oprf(
     // Verify that the user unblinded correctly
     // This checks that: oprf_response * beta === oprf_response_blinded
     let oprf_response_blinded_in_subgroup =
-        verify_unblinding_of_response(oprf_response, oprf_response_blinded, beta_bits);
+        verify_unblinding_of_response(oprf_response, beta_bits);
 
     // Check the dlog equality proof
     verify_dlog_equality(
@@ -60,10 +59,10 @@ pub fn generate_output(query: Field, oprf_response: BabyJubJubPoint, ds_out: Fie
     state[1]
 }
 
-/// Verifiers that oprf_response is a correct unblinding of oprf_response_blinded with respect to beta, and that the response is in the prime order subgroup. This ensures that the response is valid and prevents malleability attacks. Returns the unblinded response as a point in the prime order subgroup if verification succeeds.
+/// Recomputes oprf_response_blinded from oprf_response and beta, and verifies that the response is in the prime order subgroup. 
+/// This ensures that the response is valid and prevents malleability attacks. Returns the unblinded response as a point in the prime order subgroup if verification succeeds.
 pub fn verify_unblinding_of_response(
     oprf_response: BabyJubJubPoint,
-    oprf_response_blinded: BabyJubJubPoint,
     beta_bits: [bool; 251],
 ) -> BabyJubJubPointInSubgroup {
     // We need to check that the response is in the prime order subgroup, otherwise the response may include a small-order component which may get canceled out during unblinding and allow malleability here
@@ -73,10 +72,9 @@ pub fn verify_unblinding_of_response(
     let reblinded = oprf_response.scalar_mul_bits(beta_bits);
     // Since response point is in the prime order subgroup, reblinded is also in the prime order subgroup.
 
-    assert(reblinded.equals(oprf_response_blinded), "Unblinding verification failed");
     // The above check ensures that the unblinded response is on the curve and in the prime order subgroup.
     // This means that the blinded response is also on the curve and in the prime order subgroup, since it's just a scalar multiple of the unblinded response.
-    BabyJubJubPointInSubgroup::from_point_unchecked(oprf_response_blinded)
+    BabyJubJubPointInSubgroup::from_point_unchecked(reblinded)
 }
 
 #[test]
@@ -109,7 +107,6 @@ fn verified_oprf_kat_test() {
         oprf_pk,
         dlog_e,
         dlog_s,
-        oprf_response_blinded,
         oprf_response,
         client_input,
         ds_dlog,

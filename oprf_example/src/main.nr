@@ -25,8 +25,6 @@ pub fn main(
     oprf_pk: pub BabyJubJubPointInSubgroup,
     dlog_e: Field,
     dlog_s: Field,
-    oprf_response_blinded_x: Field,
-    oprf_response_blinded_y: Field,
     oprf_response_x: Field,
     oprf_response_y: Field,
 ) -> pub (BabyJubJubPointInSubgroup, Field) {
@@ -37,9 +35,7 @@ pub fn main(
     // 1. Generate the query proof point.
     let query = blinded_query(beta, preimage);
 
-    // construct the input points, checking they are on curve
-    let oprf_response_blinded =
-        BabyJubJubPoint::new(oprf_response_blinded_x, oprf_response_blinded_y);
+    // construct the input point, checking they are on curve
     let oprf_response = BabyJubJubPoint::new(oprf_response_x, oprf_response_y);
 
     // 2. Generate the final proof on the client side on the output of the OPRF nodes.
@@ -49,7 +45,6 @@ pub fn main(
         oprf_pk,
         dlog_e,
         dlog_s,
-        oprf_response_blinded,
         oprf_response,
         preimage,
         DS_DLOG,
@@ -69,11 +64,6 @@ fn hash_preimage_kat_test() {
     let oprf_response = BabyJubJubPoint::new(
         8239981253288452954319423631647803967161484725248664916163883751103616749641,
         10909431257409573621736924846505941126161080693380329853422959666368005023270,
-    );
-
-    let oprf_response_blinded = BabyJubJubPoint::new(
-        3155679112931956901250628220045483261937665592711481372076828199008185725288,
-        2295756075485931574186491588789693245723103184777309603040062940469350270432,
     );
 
     let beta = 63865932500786004558985758765891911620034145599124743624338496685411118977;
@@ -96,8 +86,6 @@ fn hash_preimage_kat_test() {
         oprf_pk,
         dlog_e,
         dlog_s,
-        oprf_response_blinded.x(),
-        oprf_response_blinded.y(),
         oprf_response.x(),
         oprf_response.y(),
     );
