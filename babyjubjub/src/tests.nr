@@ -1,5 +1,5 @@
 // test the lib
-use crate::BabyJubJubPoint;
+use crate::{BabyJubJubPoint, BabyJubJubScalarFieldElement};
 
 #[test]
 fn test_point_add() {
@@ -74,7 +74,7 @@ fn test_scalar_mul_simple() {
     let generator = BabyJubJubPoint::generator();
 
     // 2 * G
-    let result_2 = generator.scalar_mul(2);
+    let result_2 = generator.scalar_mul(BabyJubJubScalarFieldElement::new(2));
     let expected_2 = generator.double();
 
     assert_eq(result_2.x, expected_2.x, "x is not equal");
@@ -122,7 +122,7 @@ fn test_scalar_mul_preserves_curve() {
     let point = BabyJubJubPoint::generator();
 
     for scalar in 1..10 {
-        let result = point.scalar_mul(scalar as Field);
+        let result = point.scalar_mul(BabyJubJubScalarFieldElement::new(scalar as Field));
         assert(result.is_on_curve(), "Result is not on curve");
     }
 }

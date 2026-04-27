@@ -1,5 +1,5 @@
 use super::{blinded_query::blinded_query_inner, dlog::verify_dlog_equality};
-use babyjubjub::{BabyJubJubPoint, BabyJubJubPointInSubgroup};
+use babyjubjub::{BabyJubJubPoint, BabyJubJubPointInSubgroup, BabyJubJubScalarFieldElement};
 
 /// Generates a proof of the full construction, including the initial query proof generation, the Chaum-Pedersen dlog equality proof verification, the unblinding verification, and the final output. For further details we refer to https://github.com/TaceoLabs/oprf-service/blob/main/docs/oprf.pdf
 /// Inputs:
@@ -24,7 +24,7 @@ pub fn verified_oprf(
 ) -> Field {
     // Validate beta once and reuse the bits
     assert(beta != 0, "Beta cannot be zero");
-    let beta_bits = babyjubjub::validate_scalar_field_with_bits(beta);
+    let beta_bits = BabyJubJubScalarFieldElement::new(beta).to_le_bits();
 
     // Show that the original query was computed correctly
     let b_q = blinded_query_inner(beta_bits, client_input);

@@ -183,9 +183,9 @@ impl BabyJubJubPoint {
         self.add(self)
     }
 
-    pub fn scalar_mul(self, scalar: Field) -> Self {
+    pub fn scalar_mul(self, scalar: BabyJubJubScalarFieldElement) -> Self {
         // Early termination for zero scalar
-        if scalar == 0 {
+        if scalar.value() == 0 {
             BabyJubJubPoint::identity()
         } else {
             // Decompose scalar into 251 bits (BabyJubJub scalar field size)
@@ -252,7 +252,7 @@ impl BabyJubJubPoint {
     }
 
     /// A more efficient method for multiplying the generator by a scalar, using a fixed window method with precomputation.
-    pub fn generator_scalar_mul(scalar: Field) -> Self {
+    pub fn generator_scalar_mul(scalar: BabyJubJubScalarFieldElement) -> Self {
         generator_mul_fix(scalar)
     }
 }
@@ -322,7 +322,7 @@ impl BabyJubJubPointInSubgroup {
         !self.is_identity()
     }
 
-    pub fn generator_scalar_mul(scalar: Field) -> Self {
+    pub fn generator_scalar_mul(scalar: BabyJubJubScalarFieldElement) -> Self {
         // Since we multiply the generator by a scalar, the result will always be in the subgroup.
         Self { point: generator_mul_fix(scalar) }
     }
@@ -352,7 +352,7 @@ impl BabyJubJubPointInSubgroup {
         Self { point: self.point.subtract(other.point) }
     }
 
-    pub fn scalar_mul(self, scalar: Field) -> Self {
+    pub fn scalar_mul(self, scalar: BabyJubJubScalarFieldElement) -> Self {
         // Scalar multiplication of a point in the subgroup will also yield a point in the subgroup.
         Self { point: self.point.scalar_mul(scalar) }
     }
@@ -368,16 +368,30 @@ impl BabyJubJubPointInSubgroup {
     }
 }
 
+
+pub struct BabyJubJubScalarFieldElement{ inner: Field }
+
+impl BabyJubJubScalarFieldElement {
+    /// Creates a new BabyJubJub scalar field element, checking that it is within the valid range of the scalar field.
+    pub fn new(value: Field) -> Self {
+        validate_babyjubjub_scalar_field(value);
+        BabyJubJubScalarFieldElement { inner: value }
+    }
+
+    pub fn value(self) -> Field {
+        self.inner
+    }
+
+    pub fn to_le_bits(self) -> [bool; 251] {
+        self.inner.to_le_bits()
+    }
+}
+
 /// Validates that a field element is in the BabyJubJub scalar field Fr
-pub fn validate_babyjubjub_field(field_element: Field) {
+fn validate_babyjubjub_scalar_field(field_element: Field) {
     bn254::assert_lt(field_element, BABYJUBJUB_Fr);
 }
 
-pub fn validate_scalar_field_with_bits(field_element: Field) -> [bool; 251] {
-    validate_babyjubjub_field(field_element);
-    let bits: [bool; 251] = field_element.to_le_bits();
-    bits
-}
 
 #[test]
 fn test_babyjubjub_in_correct_subgroup() {

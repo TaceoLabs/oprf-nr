@@ -1,4 +1,4 @@
-use babyjubjub::{BabyJubJubPointInSubgroup, hash_to_curve::encode};
+use babyjubjub::{BabyJubJubPointInSubgroup, BabyJubJubScalarFieldElement, hash_to_curve::encode};
 
 // Generates the blinded query proof point b_q = encode(client_input) * beta, where beta (the blinding randomness provided by the client) is already given in bits (generated via BabyJubJubPoint::validate_scalar_field_with_bits(beta)).
 // The client_input is the input known only to the client, which is encoded to a curve point via the encode() function from the BabyJubJub hash_to_curve module.
@@ -6,7 +6,7 @@ use babyjubjub::{BabyJubJubPointInSubgroup, hash_to_curve::encode};
 pub fn blinded_query(beta: Field, client_input: Field) -> BabyJubJubPointInSubgroup {
     // Validate that beta is non-zero and get its bits
     assert(beta != 0, "Beta cannot be zero");
-    let beta_bits = babyjubjub::validate_scalar_field_with_bits(beta);
+    let beta_bits = BabyJubJubScalarFieldElement::new(beta).to_le_bits();
 
     blinded_query_inner(beta_bits, client_input)
 }

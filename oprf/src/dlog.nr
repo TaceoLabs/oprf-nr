@@ -1,4 +1,4 @@
-use babyjubjub::BabyJubJubPointInSubgroup;
+use babyjubjub::{BabyJubJubPointInSubgroup, BabyJubJubScalarFieldElement};
 use poseidon2::bn254::permutation;
 
 // Verify a Chaum-Pedersen dlog equality proof that shows that A=x*G and C=x*B share the same discrete log x, given A,B,C and proof e,s.
@@ -12,7 +12,7 @@ pub fn verify_dlog_equality(
     c_point: BabyJubJubPointInSubgroup,
     ds_dlog: Field,
 ) {
-    babyjubjub::validate_babyjubjub_field(s);
+    let s_validated = BabyJubJubScalarFieldElement::new(s);
 
     assert(a_point.is_not_identity(), "Point a must not be identity");
     assert(b_point.is_not_identity(), "Point b must not be identity");
@@ -20,11 +20,11 @@ pub fn verify_dlog_equality(
 
     // Compute r1 = G*s - a*e and r2 = b*s - c*e
     let generator = BabyJubJubPointInSubgroup::generator();
-    let gs = BabyJubJubPointInSubgroup::generator_scalar_mul(s);
+    let gs = BabyJubJubPointInSubgroup::generator_scalar_mul(s_validated);
     let ae = a_point.scalar_mul_base_field(e);
     let r1 = gs.subtract(ae);
 
-    let bs = b_point.scalar_mul(s);
+    let bs = b_point.scalar_mul(s_validated);
     let ce = c_point.scalar_mul_base_field(e);
     let r2 = bs.subtract(ce);
 
