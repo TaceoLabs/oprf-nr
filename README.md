@@ -45,3 +45,4 @@ We provide a justfile in the root of the repository. Write `just` in your termin
 nargo test
 ```
 
+This is a test line.
