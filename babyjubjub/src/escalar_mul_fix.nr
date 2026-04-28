@@ -4,6 +4,7 @@
 
 use super::BABYJUBJUB_Fr;
 use super::BabyJubJubPoint;
+use super::BabyJubJubScalarFieldElement;
 use super::montgomery::MontgomeryPoint;
 use super::window_table::{generate_window_table, generator_window_table, select_from_window};
 use std::static_assert;
@@ -109,7 +110,7 @@ fn segment_mul_fix_generator<let N: u32>(
 // soft precondition: scalar < BABYJUBJUB_Fr
 // hard precondition: scalar < 2^251
 // Returns: BabyJubJubPoint = scalar * G
-pub fn generator_mul_fix(scalar: Field) -> BabyJubJubPoint {
+pub fn generator_mul_fix(scalar: BabyJubJubScalarFieldElement) -> BabyJubJubPoint {
     let bits: [bool; 251] = scalar.to_le_bits();
     // split bits into two segments to protect against overflows in the field
     let mut bits_0: [bool; 126] = [false; 126];
@@ -138,7 +139,7 @@ fn test_segment_mul_fix_small() {
     let generator_window_table = generator_window_table();
 
     let (result, _) = segment_mul_fix_generator(bits, generator_window_table);
-    let expected = g.scalar_mul(5);
+    let expected = g.scalar_mul(BabyJubJubScalarFieldElement::new(5));
 
     assert(result.x == expected.x, "segment_mul_fix_small: x mismatch vs scalar_mul(5)");
     assert(result.y == expected.y, "segment_mul_fix_small: y mismatch vs scalar_mul(5)");
@@ -151,7 +152,7 @@ fn test_segment_mul_fix_medium() {
 
     let generator_window_table = generator_window_table();
     let (result, _) = segment_mul_fix_generator(bits, generator_window_table);
-    let expected = g.scalar_mul(397);
+    let expected = g.scalar_mul(BabyJubJubScalarFieldElement::new(397));
 
     assert(result.x == expected.x, "segment_mul_fix_medium: x mismatch vs scalar_mul(397)");
     assert(result.y == expected.y, "segment_mul_fix_medium: y mismatch vs scalar_mul(397)");
@@ -162,22 +163,22 @@ fn test_escalar_mul_fix_basic() {
     let g = BabyJubJubPoint::generator();
 
     // Test zero scalar
-    let result_0 = generator_mul_fix(0);
+    let result_0 = generator_mul_fix(BabyJubJubScalarFieldElement::new(0));
     assert(result_0.is_identity(), "generator_mul_fix(0) should return identity point");
 
     // Test identity scalar
-    let result_1 = generator_mul_fix(1);
+    let result_1 = generator_mul_fix(BabyJubJubScalarFieldElement::new(1));
     assert(result_1.x == g.x, "generator_mul_fix(1): x mismatch vs generator");
     assert(result_1.y == g.y, "generator_mul_fix(1): y mismatch vs generator");
 
     // Test small scalar
-    let result_5 = generator_mul_fix(5);
-    let expected_5 = g.scalar_mul(5);
+    let result_5 = generator_mul_fix(BabyJubJubScalarFieldElement::new(5));
+    let expected_5 = g.scalar_mul(BabyJubJubScalarFieldElement::new(5));
     assert(result_5.x == expected_5.x, "generator_mul_fix(5): x mismatch vs scalar_mul(5)");
     assert(result_5.y == expected_5.y, "generator_mul_fix(5): y mismatch vs scalar_mul(5)");
 
     // Test large scalar
-    let large_scalar = 123456789;
+    let large_scalar = BabyJubJubScalarFieldElement::new(123456789);
     let result_fixed = generator_mul_fix(large_scalar);
     let result_basic = g.scalar_mul(large_scalar);
     assert(
@@ -194,14 +195,14 @@ fn test_escalar_mul_fix_basic() {
 fn test_optimized_generator_mul_fix() {
     let g = BabyJubJubPoint::generator();
 
-    let scalar = 5;
+    let scalar = BabyJubJubScalarFieldElement::new(5);
     let result_optimized = generator_mul_fix(scalar);
     let result_regular = g.scalar_mul(scalar);
 
     assert(result_optimized.x == result_regular.x, "optimized vs regular: x mismatch for scalar=5");
     assert(result_optimized.y == result_regular.y, "optimized vs regular: y mismatch for scalar=5");
 
-    let large_scalar = 123456789;
+    let large_scalar = BabyJubJubScalarFieldElement::new(123456789);
     let result_opt_large = generator_mul_fix(large_scalar);
     let result_reg_large = g.scalar_mul(large_scalar);
 
@@ -214,7 +215,7 @@ fn test_optimized_generator_mul_fix() {
         "optimized vs regular: y mismatch for large scalar",
     );
 
-    let very_large_scalar = BABYJUBJUB_Fr - 1234567890;
+    let very_large_scalar = BabyJubJubScalarFieldElement::new(BABYJUBJUB_Fr - 1234567890);
     let result_gen = g.scalar_mul(very_large_scalar);
     let result_opt = generator_mul_fix(very_large_scalar);
 
@@ -235,14 +236,8 @@ fn test_segment_mul_fix_generator() {
 }
 
 #[test]
-fn test_segment_mul_fix_generator_by_char() {
-    let id = generator_mul_fix(BABYJUBJUB_Fr);
-    assert(id.is_identity(), "generator_mul_fix(BABYJUBJUB_Fr) should return identity point");
-}
-
-#[test]
 fn test_segment_mul_fix_generator_by_minus_1() {
-    let minus_1 = BABYJUBJUB_Fr - 1;
+    let minus_1 = BabyJubJubScalarFieldElement::new(BABYJUBJUB_Fr - 1);
     let id = generator_mul_fix(minus_1);
     let minus_generator = BabyJubJubPoint::generator().negate();
     assert(id.x == minus_generator.x, "generator_mul_fix(-1) x should match generator");
