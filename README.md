@@ -27,6 +27,31 @@ This repository contains two independent Nargo packages:
 - `oprf_example/` (binary)
 	- a simple example binary demonstrating the `oprf` gadgets end-to-end 
 
+## Versions
+
+Releases are published as git tags. The two tags below are the ones consumers should be
+aware of:
+
+| Version | Audited | Highlights |
+|---------|---------|------------|
+| [`v1.0.0`](https://github.com/TaceoLabs/oprf-nr/tree/v1.0.0) | Yes — Least Authority, Jan 2026 (see [`audits/`](./audits)) | Audited OPRF + BabyJubJub circuits |
+| [`v2.0.0`](https://github.com/TaceoLabs/oprf-nr/tree/v2.0.0) | Not yet audited | Improved type safety for `BabyJubJubPoint` (fewer duplicated subgroup checks); fewer constraints / ACIR opcodes |
+
+Measured with `nargo info` (toolchain `1.0.0-beta.20`) on the `oprf_example::main` circuit:
+
+| Version | ACIR opcodes | Brillig opcodes |
+|---------|--------------|------------------|
+| `v1.0.0` | 43692 | 1978 |
+| `v2.0.0` | 37592 | 1978 |
+
+To pin a specific version, reference the tag as a git dependency in your `Nargo.toml`:
+
+```toml
+[dependencies]
+babyjubjub = { git = "https://github.com/TaceoLabs/oprf-nr", tag = "v2.0.0", directory = "babyjubjub" }
+oprf = { git = "https://github.com/TaceoLabs/oprf-nr", tag = "v2.0.0", directory = "oprf" }
+```
+
 ## High-level protocol shape
 
 At a high level, the `oprf` library helps prove (in-circuit) that:
