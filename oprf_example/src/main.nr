@@ -1,5 +1,6 @@
 use babyjubjub::{BabyJubJubPoint, BabyJubJubPointInSubgroup};
 use oprf::{blinded_query::blinded_query, oprf_output::verified_oprf};
+use poseidon2::bn254::permutation;
 
 pub global DS_N: Field = 1330664006; // b"OPRF"
 pub global DS_DLOG: Field = 1523098184080632582082867317389990410064981862; // b"DLOG Equality Proof"
@@ -29,7 +30,7 @@ pub fn main(
     oprf_response_y: Field,
 ) -> pub (BabyJubJubPointInSubgroup, Field) {
     // Prove that the client knows the preimage of the given hash.
-    let hash = std::hash::poseidon2_permutation::<4>([0, preimage, 0, 0])[1];
+    let hash = permutation::t4([0, preimage, 0, 0])[1];
     assert(hash == commitment, "Hashed message does not match expected value");
 
     // 1. Generate the query proof point.

@@ -1,5 +1,6 @@
 use super::{blinded_query::blinded_query_inner, dlog::verify_dlog_equality};
 use babyjubjub::{BabyJubJubPoint, BabyJubJubPointInSubgroup, BabyJubJubScalarFieldElement};
+use poseidon2::bn254::permutation;
 
 /// Generates a proof of the full construction, including the initial query proof generation, the Chaum-Pedersen dlog equality proof verification, the unblinding verification, and the final output. For further details we refer to https://github.com/TaceoLabs/oprf-service/blob/main/docs/oprf.pdf
 /// Inputs:
@@ -47,12 +48,7 @@ pub fn verified_oprf(
 
 // Generates the final output as output = Poseidon2(DS_out,query, oprf_response.x, oprf_response.y), where DS_out is a domain separator.
 pub fn generate_output(query: Field, oprf_response: BabyJubJubPoint, ds_out: Field) -> Field {
-    let state = std::hash::poseidon2_permutation::<4>([
-        ds_out,
-        query,
-        oprf_response.x(),
-        oprf_response.y(),
-    ]);
+    let state = permutation::t4([ds_out, query, oprf_response.x(), oprf_response.y()]);
 
     state[1]
 }

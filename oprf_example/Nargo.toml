@@ -6,3 +6,4 @@ authors = [""]
 [dependencies]
 babyjubjub = { path = "../babyjubjub" }
 oprf = { path = "../oprf" }
+poseidon2 = { tag = "v0.6.2", git = "https://github.com/TaceoLabs/noir-poseidon", directory = "poseidon2" }

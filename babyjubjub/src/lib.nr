@@ -227,7 +227,7 @@ impl BabyJubJubPoint {
             BabyJubJubPoint::identity()
         } else {
             // Decompose to 254 bits
-            let bits: [bool; 254] = scalar_fq.to_le_bits();
+            let bits: [bool; 254] = field_to_le_bits(scalar_fq);
 
             self.scalar_mul_bits(bits)
         }
@@ -384,8 +384,19 @@ impl BabyJubJubScalarFieldElement {
     }
 
     pub fn to_le_bits(self) -> [bool; 251] {
-        self.inner.to_le_bits()
+        field_to_le_bits(self.inner)
     }
+}
+
+// Field::to_le_bits returns [u1; N] on noir beta.11 and [bool; N] on beta.20;
+// casting through Field compiles on both.
+fn field_to_le_bits<let N: u32>(x: Field) -> [bool; N] {
+    let bits = x.to_le_bits::<N>();
+    let mut out = [false; N];
+    for i in 0..N {
+        out[i] = (bits[i] as Field) == 1;
+    }
+    out
 }
 
 /// Validates that a field element is in the BabyJubJub scalar field Fr

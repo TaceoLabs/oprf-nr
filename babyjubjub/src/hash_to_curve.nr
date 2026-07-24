@@ -50,7 +50,7 @@ fn inverse_or_zero(x: Field) -> Field {
 
 fn pow(x: Field, y: Field) -> Field {
     let mut r = 1 as Field;
-    let b: [bool; 254] = y.to_le_bits();
+    let b = y.to_le_bits::<254>();
 
     for i in 0..254 {
         r *= r;
@@ -132,7 +132,9 @@ fn is_quadratic_residue_or_zero(x: Field) -> bool {
 }
 
 fn sgn0(x: Field) -> bool {
-    x.sgn0()
+    // Field::sgn0 returns u1 on noir beta.11 and bool on beta.20;
+    // casting through Field compiles on both.
+    (x.sgn0() as Field) == 1
 }
 
 // Map to Montgomery curve using Elligator2
