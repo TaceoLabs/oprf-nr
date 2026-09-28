@@ -148,6 +148,16 @@ impl BabyJubJubPoint {
     /// Point addition on BabyJubJub (twisted Edwards).
     /// Precondition: both points must lie on the BabyJubJub curve.
     pub fn add(self, other: BabyJubJubPoint) -> Self {
+        // Safety: `add_with_hint` constrains the result to be `self + other`.
+        let sum = unsafe { Self::add_unconstrained(self, other) };
+        self.add_with_hint(other, sum)
+    }
+
+    /// Constrains `hint` to be `self + other` and returns it.
+    ///
+    /// Precondition: both points must lie on the BabyJubJub curve. The TE addition formula is
+    /// complete there, so the denominators are nonzero and the constraints fix `hint` uniquely.
+    fn add_with_hint(self, other: BabyJubJubPoint, hint: (Field, Field)) -> Self {
         let beta = self.x * other.y;
         let gamma = self.y * other.x;
         let delta = (-BABYJUBJUB_A * self.x + self.y) * (other.x + other.y);
@@ -156,8 +166,7 @@ impl BabyJubJubPoint {
         let den_x = 1 + BABYJUBJUB_D * tau;
         let den_y = 1 - BABYJUBJUB_D * tau;
 
-        // Safety: Points lie on the BabyJubJub curve and its TE addition formula is complete.
-        let (x, y) = unsafe { Self::add_unconstrained(self, other) };
+        let (x, y) = hint;
         assert(
             y * den_y == delta + BABYJUBJUB_A * beta - gamma,
             "Edwards add y-coordinate constraint failed",
@@ -165,6 +174,48 @@ impl BabyJubJubPoint {
         assert(x * den_x == beta + gamma, "Edwards add x-coordinate constraint failed");
 
         BabyJubJubPoint { x, y }
+    }
+
+    /// The double-and-add ladder `start * 2^N + bits * base`, with `bits` little-endian.
+    ///
+    /// Every intermediate point is computed in a single unconstrained call and then constrained
+    /// step by step with `add_with_hint`. This yields the same constraints as calling `double`
+    /// and `add` in the loop, but one Brillig call instead of one per addition.
+    ///
+    /// Precondition: `start` and `base` must lie on the BabyJubJub curve.
+    fn ladder<let N: u32>(start: BabyJubJubPoint, base: BabyJubJubPoint, bits: [bool; N]) -> Self {
+        // Safety: every hint is constrained by `add_with_hint` below.
+        let (doubles, adds) = unsafe { Self::ladder_hints(start, base, bits) };
+
+        let mut result = start;
+        for i in 0..N {
+            result = result.add_with_hint(result, doubles[i]);
+            if bits[N - 1 - i] {
+                result = result.add_with_hint(base, adds[i]);
+            }
+        }
+        result
+    }
+
+    /// The intermediate points of `ladder`: the doubling and, where the bit is set, the
+    /// addition of each step. Unused addition slots are left at zero.
+    unconstrained fn ladder_hints<let N: u32>(
+        start: BabyJubJubPoint,
+        base: BabyJubJubPoint,
+        bits: [bool; N],
+    ) -> ([(Field, Field); N], [(Field, Field); N]) {
+        let mut doubles = [(0, 0); N];
+        let mut adds = [(0, 0); N];
+        let mut result = start;
+        for i in 0..N {
+            doubles[i] = result.add_unconstrained(result);
+            result = BabyJubJubPoint { x: doubles[i].0, y: doubles[i].1 };
+            if bits[N - 1 - i] {
+                adds[i] = result.add_unconstrained(base);
+                result = BabyJubJubPoint { x: adds[i].0, y: adds[i].1 };
+            }
+        }
+        (doubles, adds)
     }
 
     /// Point negation
@@ -208,17 +259,7 @@ impl BabyJubJubPoint {
     pub fn scalar_mul_bits<let N: u32>(self, bits: [bool; N]) -> Self {
         assert(self.is_on_curve(), "Point must be on curve");
 
-        let mut result = BabyJubJubPoint::identity();
-
-        for i in 0..N {
-            result = result.double();
-
-            if bits[N - 1 - i] {
-                result = result.add(self);
-            }
-        }
-
-        result
+        BabyJubJubPoint::ladder(BabyJubJubPoint::identity(), self, bits)
     }
     /// Base field scalar multiplication
     pub fn scalar_mul_base_field(self, scalar_fq: Field) -> Self {
@@ -240,15 +281,12 @@ impl BabyJubJubPoint {
             "Characteristic has high bit set",
         );
 
-        let mut p = self;
+        // The top bit (250) is the ladder's starting point; the remaining 250 bits drive it.
+        let mut bits = [false; 250];
         for i in 0..250 {
-            p = p.double();
-            if BABYJUBJUB_CHARACTERISTIC[249 - i] {
-                p = p.add(self);
-            }
+            bits[i] = BABYJUBJUB_CHARACTERISTIC[i];
         }
-
-        p.is_identity()
+        BabyJubJubPoint::ladder(self, self, bits).is_identity()
     }
 
     /// A more efficient method for multiplying the generator by a scalar, using a fixed window method with precomputation.
