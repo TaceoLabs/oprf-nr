@@ -167,11 +167,13 @@ impl BabyJubJubPoint {
         let den_y = 1 - BABYJUBJUB_D * tau;
 
         let (x, y) = hint;
+        // Use zero residuals so Noir's Brillig coverage checker recognizes constraints
+        // between intermediate outputs of the same batched ladder call.
         assert(
-            y * den_y == delta + BABYJUBJUB_A * beta - gamma,
+            y * den_y - (delta + BABYJUBJUB_A * beta - gamma) == 0,
             "Edwards add y-coordinate constraint failed",
         );
-        assert(x * den_x == beta + gamma, "Edwards add x-coordinate constraint failed");
+        assert(x * den_x - (beta + gamma) == 0, "Edwards add x-coordinate constraint failed");
 
         BabyJubJubPoint { x, y }
     }
