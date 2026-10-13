@@ -9,6 +9,7 @@ use std::{field::bn254, static_assert};
 mod tests;
 pub mod hash_to_curve;
 pub(crate) mod montgomery;
+mod tate;
 pub(crate) mod window_table;
 pub(crate) mod escalar_mul_fix;
 
