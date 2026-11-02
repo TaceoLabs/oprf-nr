@@ -17,9 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: noir-lang/noirup@v0.1.5
+      # TODO: switch to a tagged noirup release once one includes the actions/cache SHA pin
+      - uses: noir-lang/noirup@b6d3d6164977586b8338ff23a32a6a77bbb4510a # master
         with:
-          toolchain: 1.0.0-beta.26
+          toolchain: 1.0.0
       - run: cd babyjubjub && nargo test
       - run: cd oprf && nargo test
       - run: cd oprf_example && nargo test
@@ -29,9 +30,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: noir-lang/noirup@v0.1.5
+      # TODO: switch to a tagged noirup release once one includes the actions/cache SHA pin
+      - uses: noir-lang/noirup@b6d3d6164977586b8338ff23a32a6a77bbb4510a # master
         with:
-          toolchain: 1.0.0-beta.26
+          toolchain: 1.0.0
       - run: cd babyjubjub && nargo fmt --check
       - run: cd oprf && nargo fmt --check
       - run: cd oprf_example && nargo fmt --check
