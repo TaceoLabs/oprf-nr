@@ -2,6 +2,7 @@
 name = "oprf_example"
 type = "bin"
 authors = [""]
+compiler_version = ">=1.0.0"
 
 [dependencies]
 babyjubjub = { path = "../babyjubjub" }

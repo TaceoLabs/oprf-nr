@@ -2,6 +2,7 @@
 name = "oprf"
 type = "lib"
 authors = [""]
+compiler_version = ">=1.0.0"
 
 [dependencies]
 babyjubjub = { path = "../babyjubjub" }
