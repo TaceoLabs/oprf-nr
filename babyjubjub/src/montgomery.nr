@@ -2,9 +2,9 @@ use super::BabyJubJubPoint;
 
 // Reference: https://github.com/iden3/circomlib/blob/master/circuits/montgomery.circom
 
-pub struct MontgomeryPoint {
-    pub u: Field,
-    pub v: Field,
+pub(crate) struct MontgomeryPoint {
+    pub(crate) u: Field,
+    pub(crate) v: Field,
 }
 global MONT_A: Field = 168698;
 global MONT_B: Field = 1;

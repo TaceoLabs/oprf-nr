@@ -1,7 +1,7 @@
 use super::montgomery::MontgomeryPoint;
 
 /// Returns [1G, 2G, 3G, 4G, 5G, 6G, 7G, 8G] in Montgomery form
-pub fn generator_window_table() -> [MontgomeryPoint; 8] {
+pub(crate) fn generator_window_table() -> [MontgomeryPoint; 8] {
     [
         MontgomeryPoint {
             u: 0x0fbc9ac10c16d45d4eacdd6489fa006480b17a811cdba46922896085f89faaf6,
@@ -40,7 +40,7 @@ pub fn generator_window_table() -> [MontgomeryPoint; 8] {
 
 /// Generate precomputed table for 3-bit windows
 /// Returns [1B, 2B, 3B, 4B, 5B, 6B, 7B, 8B] in Montgomery form
-pub fn generate_window_table(base: MontgomeryPoint) -> [MontgomeryPoint; 8] {
+pub(crate) fn generate_window_table(base: MontgomeryPoint) -> [MontgomeryPoint; 8] {
     let mut table: [MontgomeryPoint; 8] = [base; 8];
 
     // 1B = base (already assigned)
@@ -69,7 +69,7 @@ pub fn generate_window_table(base: MontgomeryPoint) -> [MontgomeryPoint; 8] {
     table
 }
 
-pub fn select_from_window(bits: [bool; 3], table: [MontgomeryPoint; 8]) -> MontgomeryPoint {
+pub(crate) fn select_from_window(bits: [bool; 3], table: [MontgomeryPoint; 8]) -> MontgomeryPoint {
     let b0 = bits[0] as Field;
     let b1 = bits[1] as Field;
     let b2 = bits[2] as Field;
