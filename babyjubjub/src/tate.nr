@@ -8,7 +8,7 @@
 // BabyJubJub is birational to the Montgomery curve v^2 = u^3 + 168698*u^2 + u via
 // u = (1+y)/(1-y), v = (1+y)/((1-y)*x). The curve is cyclic of order 8*R and 8 | Q-1, so with T a
 // point of order 8, P is in the prime-order subgroup iff t_8(T, P) = f_{8,T}(P)^((Q-1)/8) == 1.
-use super::BabyJubJubPoint;
+use super::{BabyJubJubPoint, field::{NON_RESIDUE, pow, sqrt}};
 
 // T = [R]G8 in Montgomery coordinates, where G8 is the ERC-2494 generator of order 8*R.
 global TATE_T_X: Field =
@@ -27,15 +27,9 @@ global TATE_FINAL_EXPONENT: Field =
 // 5 is a quadratic non-residue in Fq, hence 5^((Q-1)/2) = -1 and 5^((Q-1)/8) is a primitive 8th root
 // of unity. This means the class of 5 generates the quotient: the cosets 5^k * (Fq*)^8, k in 0..8,
 // partition Fq*, and every nonzero m has a unique k with m * 5^k an 8th power.
-global NON_RESIDUE: Field = 5;
 // 5^((Q-1)/8), a primitive 8th root of unity.
 global NON_RESIDUE_FINAL_EXP: Field =
     19540430494807482326159819597004422086093766032135589407132600596362845576832;
-// Q - 1 = 2^28 * T_ODD
-global TWO_ADICITY: u32 = 28;
-global T_ODD: Field = 81540058820840996586704275553141814055101440848469862132140264610111;
-global T_ODD_PLUS_ONE_HALF: Field =
-    40770029410420498293352137776570907027550720424234931066070132305056;
 
 impl BabyJubJubPoint {
     /// Miller value f_{8,T}(P) = N/D of the reduced 8-Tate pairing, returned as N * D^7 = (N/D) * D^8,
@@ -80,7 +74,9 @@ impl BabyJubJubPoint {
     ///
     /// The only exception is m == 0, where r == 0 satisfies the equation for every k, so m != 0 is
     /// checked separately. On-curve, m vanishes exactly at the identity (which has no Montgomery image
-    /// and is handled by the y == 1 shortcut) and at non-identity torsion points, which must be rejected.
+    /// and is handled by the y == 1 shortcut) and at the torsion points T, [2]T, [4]T and [6]T, which
+    /// must be rejected. The remaining torsion points [3]T, [5]T and [7]T have m != 0 and, like every
+    /// other point outside the subgroup, are rejected through k != 0.
     pub fn check_sub_group_tate(self) -> bool {
         let m = self.tate_miller_value();
         // Safety: k0..k2 are range-constrained to bits, and r is bound by r^8 == m * 5^k below.
@@ -119,48 +115,10 @@ unconstrained fn tate_final_exp_hint(m: Field) -> (Field, bool, bool, bool) {
     }
 }
 
-unconstrained fn pow(base: Field, exponent: Field) -> Field {
-    let bits: [bool; 254] = exponent.to_le_bits();
-    let mut result = 1;
-    let mut base = base;
-    for i in 0..254 {
-        if bits[i] {
-            result *= base;
-        }
-        base *= base;
-    }
-    result
-}
-
-/// Tonelli-Shanks square root. Precondition: n is a square.
-unconstrained fn sqrt(n: Field) -> Field {
-    let mut m = TWO_ADICITY;
-    let mut c = pow(NON_RESIDUE, T_ODD);
-    let mut t = pow(n, T_ODD);
-    let mut r = pow(n, T_ODD_PLUS_ONE_HALF);
-    while t != 1 {
-        let mut i: u32 = 0;
-        let mut t_sq = t;
-        while t_sq != 1 {
-            t_sq *= t_sq;
-            i += 1;
-        }
-        let mut b = c;
-        for _ in 0..(m - i - 1) {
-            b *= b;
-        }
-        m = i;
-        c = b * b;
-        t *= c;
-        r *= b;
-    }
-    r
-}
-
 #[test]
 fn test_tate_subgroup_vectors() {
     // (x, y, expected), generated from multiples of the order-8R ERC-2494 generator G8.
-    let vectors: [(Field, Field, bool); 10] = [
+    let vectors: [(Field, Field, bool); 14] = [
         (0, 1, true),
         (super::BABYJUBJUB_GENERATOR_X, super::BABYJUBJUB_GENERATOR_Y, true),
         // [8s]G8
@@ -175,8 +133,25 @@ fn test_tate_subgroup_vectors() {
         ),
         // [2R]G8 (order 4)
         (18930368022820495955728484915491405972470733850014661777449844430438130630919, 0, false),
+        // [3R]G8 (order 8)
+        (
+            4342719913949491028786768530115087822524712248835451589697801404893164183326,
+            17061719626832259898845741003733890968968767993363194771977168648564009544074, false,
+        ),
         // [4R]G8 (order 2)
         (0, -1, false),
+        // [5R]G8 (order 8)
+        (
+            17545522957889784193459637215142187266023652151580582754000402781682644312291,
+            17061719626832259898845741003733890968968767993363194771977168648564009544074, false,
+        ),
+        // [6R]G8 (order 4)
+        (2957874849018779266517920829765869116077630550401372566248359756137677864698, 0, false),
+        // [7R]G8 (order 8)
+        (
+            17545522957889784193459637215142187266023652151580582754000402781682644312291,
+            4826523245007015323400664741523384119579596407052839571721035538011798951543, false,
+        ),
         // [8s + R]G8, [8s + 2R]G8, [8s + 4R]G8
         (
             12537600754896197818627229178010202916856051828249504713364331778503781348377,
@@ -200,13 +175,4 @@ fn test_tate_subgroup_vectors() {
         assert_eq(p.check_sub_group_tate(), v.2);
         assert_eq(p.check_sub_group(), v.2);
     }
-}
-
-#[test]
-fn test_sqrt_and_pow() {
-    let x = 123456789;
-    // Safety: test only.
-    let (s, p) = unsafe { (sqrt(x * x), pow(3, 5)) };
-    assert((s == x) | (s == -x));
-    assert_eq(p, 243);
 }

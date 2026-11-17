@@ -2,13 +2,10 @@
 // Implements the Elligator2 method from RFC 9380
 // https://www.rfc-editor.org/rfc/rfc9380.html
 
-use super::{BabyJubJubPoint, BabyJubJubPointInSubgroup};
+use super::{BabyJubJubPoint, BabyJubJubPointInSubgroup, field::{legendre, NON_RESIDUE, sqrt}};
 use poseidon2::bn254::permutation;
 
-global Z: Field = 5;
-global C1: u32 = 28;
-global C3: Field = 40770029410420498293352137776570907027550720424234931066070132305055;
-global C5: Field = 19103219067921713944291392827692070036145651957329286315305642004821462161904;
+global Z: Field = NON_RESIDUE;
 
 fn hash_to_field(input: Field) -> Field {
     // element 0 is the DS string "OPRF_HashToField_BabyJubJub"
@@ -48,50 +45,6 @@ fn inverse_or_zero(x: Field) -> Field {
     inv
 }
 
-fn pow(x: Field, y: Field) -> Field {
-    let mut r = 1 as Field;
-    let b: [bool; 254] = y.to_le_bits();
-
-    for i in 0..254 {
-        r *= r;
-        r *= (b[254 - 1 - i] as Field) * x + (1 - b[254 - 1 - i] as Field);
-    }
-
-    r
-}
-
-unconstrained fn legendre(x: Field) -> Field {
-    if x == 0 {
-        0
-    } else {
-        pow(x, (0 - 1) / 2)
-    }
-}
-
-unconstrained fn sqrt(x: Field) -> Field {
-    let mut z = pow(x, C3);
-    let mut t = z * z * x;
-    z *= x;
-    let mut b = t;
-    let mut c = C5;
-
-    for i in 0..(C1 - 1) {
-        for _j in 1..(C1 - i - 1) {
-            b *= b;
-        }
-
-        z *= if b == 1 { 1 } else { c };
-
-        c *= c;
-
-        t *= if b == 1 { 1 } else { c };
-
-        b = t;
-    }
-
-    z
-}
-
 // Check if a field element is a quadratic residue or zero
 fn is_quadratic_residue_or_zero(x: Field) -> bool {
     // SAFETY:
@@ -108,7 +61,7 @@ fn is_quadratic_residue_or_zero(x: Field) -> bool {
     assert(l * (l - 1) * (l + 1) == 0, "l must be in {-1,0,1}"); // l in {-1,0,1}
 
     // n is the smallest non-quadratic residue in BN254
-    let n = 5;
+    let n = NON_RESIDUE;
     let na = n * x;
     let sqrt_in = if (l == -1) { na } else { x };
     // SAFETY: We constrain b to be the square root of either na or a, depending on the value of l.
