@@ -2,7 +2,8 @@
 //
 // Reference: Koshelev, "Subgroup membership testing on elliptic curves via the Tate pairing",
 // https://eprint.iacr.org/2022/037. Mirrors the Solidity implementation (and Lean proof) in
-// https://github.com/TaceoLabs/babyjubjub-solidity.
+// https://github.com/TaceoLabs/babyjubjub-solidity. The hint-based final exponentiation used here
+// is proven equivalent to that implementation in docs/lean/BabyJubJubNoirTateProof.lean.
 //
 // BabyJubJub is birational to the Montgomery curve v^2 = u^3 + 168698*u^2 + u via
 // u = (1+y)/(1-y), v = (1+y)/((1-y)*x). The curve is cyclic of order 8*R and 8 | Q-1, so with T a
