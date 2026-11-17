@@ -1,0 +1,15 @@
+name = "oprf-nr-proof"
+version = "0.1.0"
+defaultTargets = ["BabyJubJubNoirTateProof"]
+
+# The Solidity development this proof extends: `BabyJubJubProof` and
+# `BabyJubJubTateProof`.
+[[require]]
+name = "babyjubjub-solidity-proof"
+git = "https://github.com/TaceoLabs/babyjubjub-solidity"
+rev = "783862db9fd02fb83717fdcf5669ec4f70b8ef77"
+subDir = "docs"
+
+[[lean_lib]]
+name = "BabyJubJubNoirTateProof"
+srcDir = "lean"

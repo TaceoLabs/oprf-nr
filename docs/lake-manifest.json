@@ -1,0 +1,16 @@
+{"version": "1.2.0",
+ "packagesDir": ".lake/packages",
+ "packages":
+ [{"url": "https://github.com/TaceoLabs/babyjubjub-solidity",
+   "type": "git",
+   "subDir": "docs",
+   "scope": "",
+   "rev": "783862db9fd02fb83717fdcf5669ec4f70b8ef77",
+   "name": "«babyjubjub-solidity-proof»",
+   "manifestFile": "lake-manifest.json",
+   "inputRev": "783862db9fd02fb83717fdcf5669ec4f70b8ef77",
+   "inherited": false,
+   "configFile": "lakefile.toml"}],
+ "name": "«oprf-nr-proof»",
+ "lakeDir": ".lake",
+ "fixedToolchain": false}
